@@ -16,9 +16,6 @@ class Blog(TimestampModel):
     category = models.CharField('카테고리', max_length=20, choices=CATEGORY_CHOICES)
     title = models.CharField('제목', max_length=100)
     content = models.TextField('본문')
-    # models.CASCADE => 같이 삭제
-    # models.PROTECT => 삭제가 불가능함 (유절르 삭제하려고 할떄 블로그가 있으면 삭제가 안됨)
-    # models.SET_NULL => null값을 넣음 -> 유저 삭제 시 블로그의 author가 null이 됨, 이때 null = True의 옵션도 함꼐 설정 필요
     author = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -43,5 +40,6 @@ class Comment(TimestampModel):
     class Meta:
         verbose_name = '댓글'
         verbose_name_plural = '댓글 목록'
+        ordering = ['-created_at']
 
 

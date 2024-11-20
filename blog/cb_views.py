@@ -1,11 +1,14 @@
+from audioop import reverse
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.http import Http404, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 
-from blog.views import Blog
-from blog.models import Blog
+from blog.forms import CommentForm
+from blog.models import Blog, Comment
 
 
 class BlogListView(ListView):
@@ -29,53 +32,31 @@ class BlogListView(ListView):
 class BlogDetailView(DetailView):
     model = Blog
     template_name = 'blog_detail.html'
-    # pk_url_kwarg = 'id'
-    # """
-    # 이 속성은 URL에서 데이터를 찾을때 사용할 키 이름을 바꿔주는 것
-    # 보통 Django는 pk를 기준으로 데이터를 찾는데, 만약 URL 에서 id라는 이름을 쓰고 싶으면 이걸로 바꿔야함
-    # URL이 blog/5/ 라면 pk를 쓰고, URL이 blog/<int:id>/라면 id를 씀
-    # """
 
+    def get_context_date(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['comment_form'] = CommentForm()
+        return context
 
-    # def get_queryset(self):
-    #     queryset = super().get_queryset()
-    #     return queryset.filter(id__lte=50)
-    # """
-    # get_queryset 메서드는 어떤 데이터를 보여줄지 결정하는 것으로 데이터전체에서 필터링하는 느낌
-    # 블로그 글이 100개 있는데, id=50이하인 글만 보여주고 싶을 때 사용
-    # queryset = super().get_queryset()        # 전체 데이터 가져오기
-    # return queryset.filter(id__lte=50)       # 그 중에서 id가 50 이하인 것만 골라내기
-    # 결과는 50번째 글까지만 보여줌
-    # """
-    #
-    # def get_object(self, queryset=None):
-    #     object = super().get_object()
-    #     object = self.model.objects.get(pk=self.kwargs.get('pk'))
-    #
-    #     return object
-    #
-    # """
-    # get_object 메서드는 URL에서 특정 글(데이터) 하나를 가져오는 방법을 바꾸는것
-    # 지금은 별로 바뀌는게 없지만, 나중에 더 복잡한 조건(ex.이 글을 작성한 사람만 볼 수 있다) 같은 걸 추가가능
-    # object = super().get_object()        # 기본 방식으로 글 하나 가져오기
-    # object = self.model.objects.get(pk=self.kwargs.get('pk'))           # 다시 글 찾기
-    # self.model.objects.get()은 pk = 5인 데이터를 데이터베이스에서 직접 가져오는 방법
-    # self.kwargs.get('pk') 는 URL에서 pk값을 가져옴
-    # 결과는 그냥 글 하나 가져오는 기본 방식이랑 거의 똑같지만, 나중에 수정할 준비를 해둔 것
-    # """
-    #
-    # def get_context_data(selfself, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     context['text'] = 'CBV'
-    #     return context
-    #
-    # """
-    # 테믈릿에 추가로 데이터를 전달하는 것으로 템플릿에서 사용할 수 있는 변수를 더 만드는 것
-    # 템플릿에 CBV라는 텍스트를 표시하고 싶을때 쓸 수 있음
-    # 결과는 템플릿에서 {{ test }} 를 쓰면 CBV라는 값이 나옴
-    # context = super().get_context_data(**kwargs)        # 기본 데이터 가져오기
-    # context['test'] = 'CBV'                              # 추가로 test라는 이름으로 'CBV' 넣기
-    # """
+    def post(self, *args, **kwargs):
+        comment_form = CommentForm(self.request.POST)
+
+        if not comment_form.is_valid():
+            self.object =self.get_object()
+            context = self.get_context_data(object=self.object)
+            context['comment_form'] = comment_form
+            return self.render_to_response(context)
+
+        if not self.request.user.is_authenticated:
+            raise Http404
+
+        comment = comment_form.save(commit=False)
+        comment.blog_id = self.kwargs['pk']
+        comment.author = self.request.user
+        comment.save()
+
+        return HttpResponseRedirect(reverse_lazy('blog:detail', kwargs={'pk': self.kwargs['pk']}))
+
 
 class BlogCreateView(LoginRequiredMixin, CreateView):
     model = Blog
@@ -118,12 +99,38 @@ class BlogUpdateView(LoginRequiredMixin, UpdateView):
 
 class BlogDeleteView(LoginRequiredMixin, DeleteView):
     model = Blog
+    template_name = 'blog_detail.html'
+    paginate_by = 10
+
+    def get(self, request, *args, **kwargs):
+        self.object = get_object_or_404(Blog, pk=kwargs.get('blog_pk'))
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if not self.request.user.is_superuser:
-            queryset = queryset.filter(author=self.request.user)
-        return queryset
+        return self.model.objects.filter(blog=self.object).prefetch_related('author')
 
-    def get_success_url(self):
-        return reverse_lazy('blog:list')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['comment_form'] = CommentForm()
+        context['blog'] = self.object
+        return context
+
+class CommentCreateView(LoginRequiredMixin, CreateView):
+    model = Comment
+    from_class = CommentForm
+
+    def get(self, *args, **kwargs):
+        raise Http404
+
+    def form_valid(self, form):
+        blog = self.get_blog()
+        self.object = form.save(commit=False)
+        self.object.author = self.request.user
+        self.object.blog = blog
+        self.object.save()
+        return HttpResponseRedirect(reverse('blog:detail', kwargs={'pk': blog.pk}))
+
+    def get_blog(self):
+        pk = self.kwargs['blog_pk']
+        blog = get_object_or_404(Blog, pk=pk)
+        return blog
