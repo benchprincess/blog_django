@@ -88,6 +88,12 @@ class BlogCreateView(LoginRequiredMixin, CreateView):
         self.object.save()
         return HttpResponseRedirect(self.get_success_url())
 
+    def get_context_data(selfself, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['sub_title'] = '작성'
+        context['btn_name'] = '생성'
+        return context
+
     # def get_success_url(self):
     #     return reverse_lazy('cb_blog_detail', kwargs={'pk':self.object.pk})
 
@@ -102,6 +108,12 @@ class BlogUpdateView(LoginRequiredMixin, UpdateView):
         if self.request.user.is_superuser:
             return queryset
         return queryset.filter(author=self.request.user)
+
+    def get_context_date(selfself, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['sub_title'] = '수정'
+        context['btn_name'] = '수정'
+        return context
 
 
 class BlogDeleteView(LoginRequiredMixin, DeleteView):

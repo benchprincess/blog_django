@@ -1,19 +1,21 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>블로그 프로젝트</title>
+  <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet">
 </head>
 <body>
-  <nav style="display: flex; justify-content: space-between">
+  <nav class="d-flex justify-content-between py-2 px-4 bg-black text-white"> {# 수정 #}
     <div>
-      <a href="{% url "blog:list" %}">홈</a> # 수정
-    </div>
+      <a class="text-decoration-none text-white" href="{% url "blog:list" %}">홈</a> {# 수정 #}
+    </div> 
     <div style="text-align: right">
       {% if request.user.is_authenticated %}
-        <form action="{% url 'logout' %}" method="POST" style="display: inline">
+        <form action="{% url 'logout' %}" method="POST" class="d-inline"> {# 수정 #}
           {% csrf_token %}
-          <button>로그아웃</button>
+          <button class="btn btn-danger btn-sm">로그아웃</button> {# 수정 #}
         </form>
         {{ request.user.username }}
       {% else %}
@@ -22,12 +24,14 @@
       {% endif %}
     </div>
   </nav>
-  {% block content %}{% endblock %}
-  
-  {# 추가 #}
+  {# 수정 #}
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
   <footer>
 
   </footer>
+  <script src="{% static 'js/bootstrap.bundle.js' %}"></script>
   {% block js %}{% endblock %}
 </body>
 </html>
