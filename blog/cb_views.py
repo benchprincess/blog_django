@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 
-from blog.forms import CommentForm
+from blog.forms import CommentForm, BlogForm
 from blog.models import Blog, Comment
 
 
@@ -31,7 +31,7 @@ class BlogListView(ListView):
 
 class BlogDetailView(DetailView):
     model = Blog
-    template_name = 'blog_detail.html'
+    template_name = 'blog/blog_detail.html'
 
     def get_context_date(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -60,8 +60,8 @@ class BlogDetailView(DetailView):
 
 class BlogCreateView(LoginRequiredMixin, CreateView):
     model = Blog
-    template_name = 'blog_create.html'
-    fields = ('title', 'content')
+    template_name = 'blog/blog_form.html'
+    form_class = BlogForm
 
     def form_valid(self, form):    # 폼이 유효할 때 호출
         self.object = form.save(commit=False)
@@ -69,20 +69,17 @@ class BlogCreateView(LoginRequiredMixin, CreateView):
         self.object.save()
         return HttpResponseRedirect(self.get_success_url())
 
-    def get_context_data(selfself, **kwargs):
+    def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['sub_title'] = '작성'
         context['btn_name'] = '생성'
         return context
 
-    # def get_success_url(self):
-    #     return reverse_lazy('cb_blog_detail', kwargs={'pk':self.object.pk})
-
 
 class BlogUpdateView(LoginRequiredMixin, UpdateView):
     model = Blog
-    template_name = 'blog_update.html'
-    fields = ('category', 'title', 'content')
+    template_name = 'blog/blog_form.html'
+    form_class = BlogForm
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -90,7 +87,7 @@ class BlogUpdateView(LoginRequiredMixin, UpdateView):
             return queryset
         return queryset.filter(author=self.request.user)
 
-    def get_context_date(selfself, **kwargs):
+    def get_context_date(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['sub_title'] = '수정'
         context['btn_name'] = '수정'
@@ -99,7 +96,7 @@ class BlogUpdateView(LoginRequiredMixin, UpdateView):
 
 class BlogDeleteView(LoginRequiredMixin, DeleteView):
     model = Blog
-    template_name = 'blog_detail.html'
+    template_name = 'blog/blog_detail.html'
     paginate_by = 10
 
     def get(self, request, *args, **kwargs):

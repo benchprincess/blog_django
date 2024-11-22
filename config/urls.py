@@ -7,6 +7,8 @@ from django.views.generic import TemplateView, RedirectView
 from blog import views
 from blog import cb_views
 from member import views as member_views
+from config import settings
+from django.conf.urls.static import static
 
 
 class AboutView(TemplateView):
@@ -37,4 +39,9 @@ urlpatterns = [
     path('/cb/create/', cb_views.BlogCreateView.as_view(), name='cb_blog_create.html'),
     path('cb/<int:pk>/update/', cb_views.BlogUpdateView.as_view(), name='cb_blog_update.html'),
     path('<int:pk>/delete/', cb_views.BlogDeleteView.as_view(), name='blog_delete'),
+    # summernote 추가
+    path('summernote/', include('django_summernote.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

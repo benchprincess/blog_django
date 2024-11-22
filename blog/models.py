@@ -17,6 +17,7 @@ class Blog(TimestampModel):
     title = models.CharField('제목', max_length=100)
     content = models.TextField('본문')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+    image = models.ImageField('이미지', null = True, blank = True, upload_to='blog/%Y/%m/%d')
 
     def __str__(self):
         return f'[{self.get_category_display()}]{self.title[:10]}'
